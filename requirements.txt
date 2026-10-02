@@ -1,0 +1,13 @@
+# Runtime dependencies for the API + dashboard (flat list on purpose: Streamlit Community
+# Cloud reads this file, so it must not pull in jupyter/mlflow). Pinned to tested versions.
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.8.0
+lightgbm==4.7.0
+shap==0.52.0
+joblib==1.5.3
+fastapi==0.141.1
+pydantic==2.13.5
+uvicorn[standard]==0.54.0
+streamlit==1.64.0
+matplotlib==3.10.8

@@ -1,0 +1,17 @@
+# Full local setup: runtime + notebooks + tests.
+# Install:  pip install -r requirements-notebooks.txt     (Python 3.12 recommended)
+-r requirements.txt
+
+jupyter
+ipykernel
+nbconvert
+nbclient
+nbformat
+seaborn==0.13.2
+scipy
+imbalanced-learn
+xgboost
+mlflow==3.16.1
+
+pytest
+httpx
