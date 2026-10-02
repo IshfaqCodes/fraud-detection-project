@@ -1,62 +1,143 @@
 # Real-Time Hybrid Credit Card Fraud Detection & Risk Scoring
 
-Detects fraudulent credit card transactions with a LightGBM model, converts the fraud probability into a
-0-100 risk score (Low / Medium / High), explains each decision with SHAP, and serves it through a
-FastAPI service and a Streamlit dashboard. Includes MLflow tracking and drift monitoring.
+A machine learning project for detecting potentially fraudulent credit card transactions, translating model probabilities into an interpretable 0–100 risk score, and explaining predictions with SHAP.
 
-## Saved model (for deployment)
+**Live Dashboard:** https://fraud-detection-project-yqkkxiswxapfcqw63ggs84.streamlit.app/  
+**GitHub Repository:** https://github.com/IshfaqCodes/fraud-detection-project
 
-`models/best_supervised_model.pkl` - the trained LightGBM model (joblib format).
-Details and a loading example: [models/README.md](models/README.md).
+> Demo note: This is an educational demonstration using an anonymized public dataset. It is not a payment decision system and should not be used to make real financial decisions.
 
-## Project structure
+## Project Overview
 
+The project combines a trained LightGBM classifier with risk scoring and explainability. It includes:
+
+- Fraud probability prediction using the saved supervised model.
+- Risk score and Low / Medium / High risk band.
+- SHAP-based explanations for model outputs.
+- FastAPI endpoints for prediction and health checks.
+- Streamlit dashboard for interactive exploration.
+- Notebooks covering data preparation, imbalance handling, model evaluation, explainability, risk scoring, experiment tracking, and monitoring.
+
+## Live Demo
+
+Open the [Fraud Detection Dashboard](https://fraud-detection-project-yqkkxiswxapfcqw63ggs84.streamlit.app/) in a browser. No local installation is required to view the hosted app. Free hosting services may sleep while idle, so the first request can take longer.
+
+## Model Evaluation
+
+The following are the validation-set metrics reported in the project (Notebook 04):
+
+| Metric | LightGBM |
+|---|---:|
+| Precision | 0.944 |
+| Recall | 0.718 |
+| F1-score | 0.816 |
+| ROC-AUC | 0.980 |
+| PR-AUC | 0.825 |
+
+Fraud is rare in the dataset (approximately 0.17% of transactions), so accuracy alone can be misleading. These figures are validation results, not a guarantee of performance on new data. Final test-set metrics are recorded in `models/final_test_evaluation.csv` after running the evaluation workflow.
+
+## Technology Stack
+
+- Python
+- LightGBM and scikit-learn
+- SHAP
+- FastAPI and Uvicorn
+- Streamlit
+- MLflow
+- pandas and NumPy
+- Docker
+- pytest
+
+## Repository Structure
+
+```text
+.
+├── data/
+│   ├── README.md
+│   └── processed/              # Prepared validation/test data
+├── models/                     # Saved model and supporting artifacts
+├── notebooks/                  # Project workflow notebooks (01–10)
+├── scripts/
+│   └── run_notebooks.py
+├── src/
+│   ├── main.py                 # FastAPI application
+│   ├── dashboard.py            # Streamlit dashboard
+│   ├── landing.py              # Dashboard landing page
+│   ├── export_scaler.py
+│   └── check_setup.py
+├── tests/
+│   └── test_api.py
+├── Dockerfile.api
+├── Dockerfile.dashboard
+├── docker-compose.yml
+├── requirements.txt
+├── requirements-api.txt
+├── requirements-dashboard.txt
+└── requirements-notebooks.txt
 ```
-data/         creditcard.csv (download, see data/README.md) and data/processed/ train/val/test splits
-notebooks/    01-10: EDA, preprocessing, imbalance, models, evaluation, SHAP, risk scoring, MLflow, monitoring
-src/          main.py (FastAPI), dashboard.py + landing.py (Streamlit), export_scaler.py, check_setup.py
-models/       trained model and all saved artifacts
-scripts/      run_notebooks.py (executes notebooks 06-10 in order)
-tests/        API tests (pytest)
-```
 
-## Setup (Windows / macOS / Linux, Python 3.12 recommended)
+## Run Locally
+
+### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd fraud_detection_project
+git clone https://github.com/IshfaqCodes/fraud-detection-project.git
+cd fraud-detection-project
+```
 
-python -m venv .venv
-# Windows:    .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+### 2. Create and activate a virtual environment
 
+**Windows PowerShell**
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+**macOS / Linux**
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+For the dashboard:
+
+```bash
+pip install -r requirements-dashboard.txt
+```
+
+For the API:
+
+```bash
+pip install -r requirements-api.txt
+```
+
+For notebook development:
+
+```bash
 pip install -r requirements-notebooks.txt
 ```
 
-Download `creditcard.csv` from Kaggle (https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)
-and place it at `data/creditcard.csv`. It is not stored in the repository because it is larger than
-GitHub's 100 MB file limit.
+If you prefer the combined environment, use `pip install -r requirements.txt`.
 
-Verify the setup:
+### 4. Check project setup
 
 ```bash
 python src/check_setup.py
 ```
 
-## Run the notebooks
+The app requires the saved model and configuration artifacts under `models/`. Review `models/README.md` for artifact details.
 
-Open `notebooks/` in VS Code or Jupyter (`jupyter lab`) and run notebooks **06 -> 07 -> 08 -> 09 -> 10 in
-that order**, "Run All" in each. Or run them all from the terminal:
+## Run the Dashboard
 
 ```bash
-python scripts/run_notebooks.py
+streamlit run src/dashboard.py
 ```
 
-Order matters: 06 writes `threshold_config.pkl` (read by 07, 08, 09) and 08 writes
-`risk_scoring_config.pkl` (read by the API and dashboard). Notebooks 01-05 are the earlier phases
-(they need `X_train.csv`; run notebook 02 first to regenerate it from `creditcard.csv`).
-Notebook 09 creates `mlflow.db` / `mlruns/` locally; view them with
-`mlflow ui --backend-store-uri sqlite:///mlflow.db` (http://127.0.0.1:5000).
+Then open http://localhost:8501.
 
 ## Run the API
 
@@ -64,47 +145,76 @@ Notebook 09 creates `mlflow.db` / `mlruns/` locally; view them with
 uvicorn src.main:app --reload
 ```
 
-Open http://127.0.0.1:8000/docs, try `POST /predict` (the example payload is pre-filled), or `GET /health`.
+API documentation: http://127.0.0.1:8000/docs  
+Health endpoint: http://127.0.0.1:8000/health
 
-## Run the dashboard
+Use the Swagger UI to inspect and try the `POST /predict` endpoint.
 
-```bash
-streamlit run src/dashboard.py
-```
-
-Opens at http://localhost:8501.
-
-## Run the tests
-
-```bash
-pytest tests -v
-```
-
-(Needs `data/creditcard.csv`; the tests are skipped with a message if it is missing.)
-
-## Docker
+## Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-API -> http://localhost:8000/docs, Dashboard -> http://localhost:8501.
+When the containers are running:
 
-## Model performance (validation set, notebook 04)
+- Dashboard: http://localhost:8501
+- API docs: http://localhost:8000/docs
 
-| Metric | LightGBM |
-|--------|----------|
-| Precision | 0.944 |
-| Recall | 0.718 |
-| F1 | 0.816 |
-| ROC-AUC | 0.980 |
-| PR-AUC | 0.825 |
+## Notebooks and Reproducibility
 
-Fraud is only ~0.17% of transactions, so accuracy is misleading; precision/recall/PR-AUC are reported instead.
-Final test-set numbers are written by notebook 06 to `models/final_test_evaluation.csv`.
+The `notebooks/` directory contains the project workflow, from exploration and preprocessing through evaluation, SHAP explainability, risk scoring, MLflow tracking, and monitoring.
 
-## Free online deployment
+Run notebooks in order where dependencies require it. In particular, the later evaluation/explainability/risk/experiment/monitoring stages are documented in `DEPLOY_FREE.md` and the notebook markdown. The full runner is:
 
-Step-by-step guide (Streamlit Community Cloud for the dashboard, Render for the API): [DEPLOY_FREE.md](DEPLOY_FREE.md).
+```bash
+python scripts/run_notebooks.py
+```
 
-See `INSTRUCTIONS.md` for the phase-by-phase history of the project.
+Some early notebook steps require the original dataset and generated training split files.
+
+## Dataset
+
+The project is based on the public [Kaggle Credit Card Fraud Detection dataset](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud). The raw `creditcard.csv` is intentionally not included in this repository due to its size and dataset distribution terms.
+
+To reproduce the data pipeline:
+
+1. Obtain the dataset from Kaggle.
+2. Place `creditcard.csv` at `data/creditcard.csv`.
+3. Follow `data/README.md` and the notebook sequence.
+
+Do not upload real customer or cardholder data to the public demo or repository.
+
+## Testing
+
+```bash
+pytest tests -v
+```
+
+Tests may require project artifacts or dataset files; consult test output and project setup notes.
+
+## Deployment
+
+The hosted Streamlit dashboard is available at:
+
+https://fraud-detection-project-yqkkxiswxapfcqw63ggs84.streamlit.app/
+
+For deployment instructions and the optional API hosting workflow, see [`DEPLOY_FREE.md`](DEPLOY_FREE.md). The API should only be described as publicly deployed once its hosting URL has been configured and verified.
+
+## Limitations and Responsible Use
+
+- Predictions are model estimates, not proof that a transaction is fraudulent.
+- Evaluation metrics depend on the dataset, split, threshold, and class distribution.
+- SHAP explanations describe model behavior; they do not establish causation.
+- Public demo hosting may sleep when inactive and may have resource limits.
+- Do not submit real payment-card, customer, or other sensitive personal data.
+- This project is intended for learning, portfolio demonstration, and experimentation—not production fraud prevention without independent validation, security review, privacy controls, monitoring, and operational safeguards.
+
+## Author
+
+**IshfaqCodes**  
+GitHub: https://github.com/IshfaqCodes
+
+---
+
+If you find this project useful, feel free to explore the notebooks, inspect the implementation, or open an issue with suggestions.
